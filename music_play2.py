@@ -3,12 +3,22 @@ from tkinter import filedialog, simpledialog
 import pygame
 import os
 import vlc
+import customtkinter
+
+#https://github.com/rdbende/Azure-ttk-theme
+#https://medium.com/@fareedkhandev/themes-for-tkinter-232c17813e3a
+#https://medium.com/@fareedkhandev/modern-gui-using-tkinter-12da0b983e22
+#https://icons8.com/icons/set/play
 
 class MusicPlayer:
     def __init__(self, root):
-        self.root = root
+        #self.root = root
+        self.root = customtkinter.CTk()
         self.root.title("Simple Music Player")
-        
+        customtkinter.set_appearance_mode("dark")
+        customtkinter.set_default_color_theme("blue")
+        self.root.geometry("300x400")
+
         # Initialize pygame mixer
         pygame.mixer.init()
 
@@ -16,7 +26,7 @@ class MusicPlayer:
         self.vlc_player = None
         
         # GUI elements
-        self.play_button = tk.Button(root, text="play", command=self.play_music)
+        self.play_button = customtkinter.CTkButton(root, text="play", command=self.play_music)
         self.play_button.pack(pady=10)
         
         self.pause_button = tk.Button(root, text="Pause", command=self.pause_music)
