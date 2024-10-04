@@ -18,9 +18,8 @@ vlc_player = None
 music_file = None
 playlist = []
 current_index = 0
-paused_time = 0  
-song_length = 0  
-sampling_rate = 0 
+paused_time = 0  # Initialize paused_time
+song_length = 0  # Initialize song_length
 
 root = customtkinter.CTk()
 root.title("Helix Music Player")
@@ -30,10 +29,10 @@ root.geometry("400x400")
 
 def update_progress_bar():
     if music_file and pygame.mixer.music.get_busy():
-        current_time = pygame.mixer.music.get_pos() / 1000  
-        progress_bar['value'] = (current_time / song_length) * 100  
-        countdown_label.config(text=f" {format_time(song_length - current_time)}")  
-        root.after(1000, update_progress_bar)  
+        current_time = pygame.mixer.music.get_pos() / 1000  # get_pos returns milliseconds
+        progress_bar['value'] = (current_time / song_length) * 100  # update progress bar
+        countdown_label.config(text=f" {format_time(song_length - current_time)}")  # update countdown
+        root.after(1000, update_progress_bar)  # repeat after 1 second
 
 def format_time(seconds):
     minutes = int(seconds // 60)
@@ -44,9 +43,9 @@ def play_music():
     global music_file, song_length, paused_time
     if music_file:
         pygame.mixer.music.play()
-        song_length = pygame.mixer.Sound(music_file).get_length() 
+        song_length = pygame.mixer.Sound(music_file).get_length()  # Get length of the song
         length_label.config(text=f" {format_time(song_length)}")
-        update_progress_bar()  
+        update_progress_bar()  # Start updating the progress bar
         print("Playing music...")
 
 
@@ -54,26 +53,50 @@ def pause_music():
     global paused_time
     if pygame.mixer.music.get_busy():
         pygame.mixer.music.pause()
-        paused_time += pygame.mixer.music.get_pos() / 1000  
+        paused_time += pygame.mixer.music.get_pos() / 1000  # Add current position to paused_time
         print("Music paused.")
 
 def resume_music():
     global paused_time
     if paused_time > 0:
-        pygame.mixer.music.unpause()  
+        pygame.mixer.music.unpause()  # Resume music
         print("Music resumed.")
-        update_progress_bar()  
+        update_progress_bar()  # Resume updating the progress bar
+
 def load_music():
     global current_index
-    files = filedialog.askopenfilenames(filetypes=[("Audio Files", "*.mp3 *.wav *.ogg")])
+    files = filedialog.askopenfilenames(filetypes=[("Audio Files", "*.mp3 *.wav *.ogg *.m3u *.pls")])
     if files:
         for file in files:
-            playlist.append(file)
-            playlist_box.insert(tk.END, os.path.basename(file))
-        if not music_file: 
+            if file.endswith('.m3u'):
+                load_m3u(file)
+            elif file.endswith('.pls'):
+                load_pls(file)
+            else:
+                playlist.append(file)
+                playlist_box.insert(tk.END, os.path.basename(file))
+        if not music_file:  # Automatically load the first song
             current_index = 0
             load_selected_song(current_index)
             
+def load_m3u(m3u_file):
+    with open(m3u_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):  # Ignore comments and empty lines
+                full_path = os.path.abspath(line)
+                playlist.append(full_path)
+                playlist_box.insert(tk.END, os.path.basename(full_path))
+
+def load_pls(pls_file):
+    with open(pls_file, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if line.startswith('File'):
+                file_path = line.split('=')[1].strip()
+                full_path = os.path.abspath(file_path)
+                playlist.append(full_path)
+                playlist_box.insert(tk.END, os.path.basename(full_path))
 
 def load_selected_song(index):
     global music_file, current_index
@@ -93,11 +116,11 @@ def stream_music():
     stream_url = simpledialog.askstring("Stream URL", "Enter the MP3 stream URL:")
     if stream_url:
         try:
-            
+            # Stop any current VLC player
             if vlc_player:
                 vlc_player.stop()
             
-            
+            # Create a new VLC media player for streaming
             vlc_player = vlc.MediaPlayer(stream_url)
             vlc_player.play()
             print(f"Streaming: {stream_url}")
