@@ -2,11 +2,15 @@ import tkinter as tk
 from tkinter import filedialog, simpledialog
 import pygame
 import os
+import wave
 import vlc
 import customtkinter
 from PIL import Image, ImageTk
 from tkinter import *
 import random
+import time
+from tkinter import ttk
+from mutagen import File 
 
 pygame.mixer.init()
 
@@ -14,25 +18,51 @@ vlc_player = None
 music_file = None
 playlist = []
 current_index = 0
+paused_time = 0  
+song_length = 0  
+sampling_rate = 0 
 
 root = customtkinter.CTk()
 root.title("Helix Music Player")
 customtkinter.set_appearance_mode('dark')
 customtkinter.set_default_color_theme('blue')
-root.geometry("155x300")
+root.geometry("400x400")
+
+def update_progress_bar():
+    if music_file and pygame.mixer.music.get_busy():
+        current_time = pygame.mixer.music.get_pos() / 1000  
+        progress_bar['value'] = (current_time / song_length) * 100  
+        countdown_label.config(text=f" {format_time(song_length - current_time)}")  
+        root.after(1000, update_progress_bar)  
+
+def format_time(seconds):
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    return f"{minutes}:{seconds:02d}"
 
 def play_music():
-    global music_file
+    global music_file, song_length, paused_time
     if music_file:
         pygame.mixer.music.play()
+        song_length = pygame.mixer.Sound(music_file).get_length() 
+        length_label.config(text=f" {format_time(song_length)}")
+        update_progress_bar()  
         print("Playing music...")
 
-def pause_music():
-        global music_file
-        if pygame.mixer.music.get_busy():
-            pygame.mixer.music.pause()
-            print("Music paused.")
 
+def pause_music():
+    global paused_time
+    if pygame.mixer.music.get_busy():
+        pygame.mixer.music.pause()
+        paused_time += pygame.mixer.music.get_pos() / 1000  
+        print("Music paused.")
+
+def resume_music():
+    global paused_time
+    if paused_time > 0:
+        pygame.mixer.music.unpause()  
+        print("Music resumed.")
+        update_progress_bar()  
 def load_music():
     global current_index
     files = filedialog.askopenfilenames(filetypes=[("Audio Files", "*.mp3 *.wav *.ogg")])
@@ -40,9 +70,10 @@ def load_music():
         for file in files:
             playlist.append(file)
             playlist_box.insert(tk.END, os.path.basename(file))
-        if not music_file:  # Automatically load the first song
+        if not music_file: 
             current_index = 0
             load_selected_song(current_index)
+            
 
 def load_selected_song(index):
     global music_file, current_index
@@ -53,25 +84,25 @@ def load_selected_song(index):
         current_index = index
 
 def stop_music():
-        global music_file
-        pygame.mixer.music.stop()
-        print("Music stopped.")
+    global music_file
+    pygame.mixer.music.stop()
+    print("Music stopped.")
 
 def stream_music():
-        global vlc_player
-        stream_url = simpledialog.askstring("Stream URL", "Enter the MP3 stream URL:")
-        if stream_url:
-            try:
-                # Stop any current VLC player
-                if vlc_player:
-                    vlc_player.stop()
-                
-                # Create a new VLC media player for streaming
-                vlc_player = vlc.MediaPlayer(stream_url)
-                vlc_player.play()
-                print(f"Streaming: {stream_url}")
-            except Exception as e:
-                print(f"Error streaming URL: {e}")
+    global vlc_player
+    stream_url = simpledialog.askstring("Stream URL", "Enter the MP3 stream URL:")
+    if stream_url:
+        try:
+            
+            if vlc_player:
+                vlc_player.stop()
+            
+            
+            vlc_player = vlc.MediaPlayer(stream_url)
+            vlc_player.play()
+            print(f"Streaming: {stream_url}")
+        except Exception as e:
+            print(f"Error streaming URL: {e}")
 
 def select_song(event):
     selection = playlist_box.curselection()
@@ -101,9 +132,9 @@ def shuffle_playlist():
         for song in playlist:
             playlist_box.insert(tk.END, os.path.basename(song))  
         current_index = 0  
-        load_selected_song(current_index) 
+        load_selected_song(current_index)
 
-metadata_label = tk.Label(root, text="No song loaded", wraplength=300, bg="green", width=38, height=2 ,font='Helvetica 14 bold')
+metadata_label = tk.Label(root, text="No song loaded", wraplength=300, bg="gray75", width=38, height=2 ,font='Helvetica 14 bold')
 metadata_label.pack(pady=10)
 metadata_label.place(x=10, y=10)
 
@@ -152,5 +183,17 @@ stream_photo = PhotoImage(file='icons8-stream-20.png')
 stream_button = customtkinter.CTkButton(root, image=stream_photo,text="", command=stream_music, width=40,height=10)
 stream_button.pack(pady=1)
 stream_button.place(x=430, y=62)
+
+progress_bar = ttk.Progressbar(root, orient="horizontal", length=300, mode="determinate")
+progress_bar.pack(pady=10)
+progress_bar.place(x=90, y=300)
+
+length_label = tk.Label(root, text="0:00", bg="gray75")
+length_label.pack()
+length_label.place(x=395, y=300)
+
+countdown_label = tk.Label(root, text="0:00", bg="gray75")
+countdown_label.pack()
+countdown_label.place(x=50, y=300)
 
 root.mainloop()
