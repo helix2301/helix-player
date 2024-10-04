@@ -6,6 +6,7 @@ import vlc
 import customtkinter
 from PIL import Image, ImageTk
 from tkinter import *
+import random
 
 pygame.mixer.init()
 
@@ -18,7 +19,7 @@ root = customtkinter.CTk()
 root.title("Helix Music Player")
 customtkinter.set_appearance_mode('dark')
 customtkinter.set_default_color_theme('blue')
-root.geometry("185x300")
+root.geometry("155x300")
 
 def play_music():
     global music_file
@@ -92,13 +93,22 @@ def back_song():
         load_selected_song(current_index)
         play_music()
 
+def shuffle_playlist():
+    global current_index
+    if playlist:
+        random.shuffle(playlist)  
+        playlist_box.delete(0, tk.END)  
+        for song in playlist:
+            playlist_box.insert(tk.END, os.path.basename(song))  
+        current_index = 0  
+        load_selected_song(current_index) 
 
-metadata_label = tk.Label(root, text="No song loaded", wraplength=300, bg="green", width=30, height=2 ,font='Helvetica 14 bold')
+metadata_label = tk.Label(root, text="No song loaded", wraplength=300, bg="green", width=38, height=2 ,font='Helvetica 14 bold')
 metadata_label.pack(pady=10)
 metadata_label.place(x=10, y=10)
 
 # Playlist Listbox
-playlist_box = Listbox(root, width=40, height=10, bg="black", fg="white", font='Helvetica 12')
+playlist_box = Listbox(root, width=51, height=10, bg="black", fg="white", font='Helvetica 12')
 playlist_box.pack(pady=10)
 playlist_box.bind('<<ListboxSelect>>', select_song)
 playlist_box.place(x=10, y=100)
@@ -128,14 +138,19 @@ next_button = customtkinter.CTkButton(root, image=next_photo, text="", command=n
 next_button.pack(pady=1)
 next_button.place(x=184, y=62)
 
+shuffle_photo = PhotoImage(file='icons8-shuffle-20.png')
+shuffle_button = customtkinter.CTkButton(root, image=shuffle_photo, text="", command=shuffle_playlist, width=40, height=10)
+shuffle_button.pack(pady=1)
+shuffle_button.place(x=228, y=62) 
+
 load_photo = PhotoImage(file='icons8-eject-20.png')
 load_button = customtkinter.CTkButton(root, image=load_photo, text="", command=load_music, width=40,height=10)
 load_button.pack(pady=1)
-load_button.place(x=280, y=62)
+load_button.place(x=380, y=62)
 
 stream_photo = PhotoImage(file='icons8-stream-20.png')
 stream_button = customtkinter.CTkButton(root, image=stream_photo,text="", command=stream_music, width=40,height=10)
 stream_button.pack(pady=1)
-stream_button.place(x=335, y=62)
+stream_button.place(x=430, y=62)
 
 root.mainloop()
